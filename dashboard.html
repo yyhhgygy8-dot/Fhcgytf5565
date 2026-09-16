@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>پنل WireGuard</title>
+<style>
+  *{box-sizing:border-box}
+  body{font-family:Tahoma,Arial,sans-serif;background:#0b1220;color:#e5e7eb;margin:0}
+  .wrap{max-width:1100px;margin:auto;padding:20px}
+  .top{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+  .card{background:#111827;border:1px solid #253047;border-radius:14px;padding:16px;margin:14px 0}
+  input,select{width:100%;box-sizing:border-box;padding:10px;margin:5px 0 10px;background:#0b1220;color:#fff;border:1px solid #334155;border-radius:8px}
+  button,.btn{border:0;border-radius:8px;padding:9px 13px;background:#2563eb;color:#fff;text-decoration:none;cursor:pointer;font-size:13px}
+  .danger{background:#b91c1c}
+  .muted{color:#94a3b8}
+  .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+  @media(max-width:700px){.grid{grid-template-columns:1fr}}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  td,th{padding:9px 6px;border-bottom:1px solid #273449;text-align:right}
+  .pill{padding:4px 10px;border-radius:20px;background:#172033;font-size:12px;display:inline-block}
+  .flash{background:#3f2a0b;color:#fde68a;padding:10px;border-radius:8px;margin:10px 0;font-size:13px}
+  .actions{white-space:nowrap}
+  .actions form{display:inline}
+  .small{font-size:12px}
+  .mono{font-family:monospace;direction:ltr;text-align:left;word-break:break-all}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <h2>پنل واقعی WireGuard</h2>
+    <a class="btn" href="{{ url_for('logout') }}">خروج</a>
+  </div>
+  {% with messages = get_flashed_messages() %}
+    {% if messages %}{% for m in messages %}<div class="flash">{{ m }}</div>{% endfor %}{% endif %}
+  {% endwith %}
+
+  <div class="card">
+    <h3>وضعیت سرور</h3>
+    <p>وضعیت wg0: <span class="pill">{{ status }}</span></p>
+    <div class="grid">
+      <div><span class="muted small">Endpoint</span><div class="mono">{{ endpoint }}:{{ port }}</div></div>
+      <div><span class="muted small">Subnet</span><div class="mono">{{ subnet }}</div></div>
+    </div>
+    <span class="muted small">کلید عمومی سرور</span>
+    <div class="mono">{{ server_public }}</div>
+  </div>
+
+  <div class="card">
+    <h3>ساخت کلاینت واقعی</h3>
+    <form method="post" action="{{ url_for('add') }}">
+      <div class="grid">
+        <div><label class="small muted">نام کلاینت</label><input name="name" placeholder="phone-01" required></div>
+        <div><label class="small muted">DNS</label><input name="dns" placeholder="1.1.1.1"></div>
+        <div><label class="small muted">حجم مجاز (GB) — 0 یعنی نامحدود</label><input name="quota_gb" type="number" step="0.1" min="0" value="0"></div>
+        <div><label class="small muted">تاریخ انقضا (اختیاری)</label><input type="datetime-local" name="expires_at"></div>
+      </div>
+      <button type="submit">ساخت واقعی + Config + QR</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <h3>کلاینت‌ها</h3>
+    <table>
+      <tr><th>نام</th><th>IP</th><th>مصرف / حجم</th><th>وضعیت</th><th>عملیات</th></tr>
+      {% for c in clients %}
+      <tr>
+        <td>{{ c.name }}</td>
+        <td class="mono">{{ c.address }}</td>
+        <td>
+          {{ "%.2f"|format(c.used / 1073741824) }} GB
+          {% if c.quota %} / {{ "%.2f"|format(c.quota / 1073741824) }} GB{% else %} / نامحدود{% endif %}
+        </td>
+        <td>
+          {{ 'فعال' if c.enabled else 'غیرفعال' }}
+          {% if c.expires_at %}<div class="small muted">{{ c.expires_at }}</div>{% endif %}
+        </td>
+        <td class="actions">
+          <a class="btn" href="{{ url_for('conf', cid=c.id) }}">Config</a>
+          <a class="btn" href="{{ url_for('qr', cid=c.id) }}">QR</a>
+          <form method="post" action="{{ url_for('toggle', cid=c.id) }}"><button>{{ 'خاموش' if c.enabled else 'روشن' }}</button></form>
+          <details style="display:inline-block">
+            <summary class="btn" style="display:inline-block">تمدید</summary>
+            <form method="post" action="{{ url_for('renew', cid=c.id) }}" style="margin-top:6px">
+              <input name="quota_gb" type="number" step="0.1" min="0" placeholder="حجم جدید GB" value="0">
+              <input type="datetime-local" name="expires_at" required>
+              <button type="submit">ثبت تمدید</button>
+            </form>
+          </details>
+          <form method="post" action="{{ url_for('delete', cid=c.id) }}" onsubmit="return confirm('حذف شود؟')"><button class="danger">حذف</button></form>
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="5" class="muted">کلاینتی وجود ندارد.</td></tr>
+      {% endfor %}
+    </table>
+  </div>
+
+  <div class="card small muted">
+    WireGuard واقعی داخل همین کانتینر اجرا می‌شود و برای ساخت رابط wg0 به NET_ADMIN و پشتیبانی کرنل از WireGuard در زیرساخت StackDome نیاز دارد.
+  </div>
+</div>
+</body>
+</html>

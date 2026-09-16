@@ -1,0 +1,45 @@
+STACKDOME DEPLOY FIX
+====================
+
+این ZIP برای رفع مشکل «استقرار در انتظار / بدون لاگ» ساده‌سازی شده است.
+
+بعد از Extract، محتوای ZIP را دقیقاً در ریشه Repository قرار دهید:
+Dockerfile
+app.py
+wsgi.py
+requirements.txt
+entrypoint.sh
+templates/
+
+در StackDome:
+- Branch: main
+- Dockerfile path: Dockerfile
+- Build context: .   (ریشه Repository)
+- Public/Web port: 8080   (⚠️ نه 5000 — StackDome به‌صورت پیش‌فرض روی 8080 چک سلامت می‌زند)
+
+متغیرهای پیشنهادی:
+ADMIN_USERNAME=admin
+ADMIN_PASSWORD=یک-رمز-قوی
+SECRET_KEY=یک-رشته-تصادفی-طولانی
+WG_ENDPOINT=دامنه-یا-IP-عمومی
+WG_PORT=51820
+
+این نسخه بلافاصله پس از شروع باید این لاگ‌ها را چاپ کند:
+[startup] WireGuard panel container started
+[startup] Starting Gunicorn...
+
+اگر قبل از این مرحله هیچ لاگی نمایش داده نشود، مشکل در صف/Build زیرساخت StackDome یا تنظیم Build Context است، نه اجرای برنامه.
+
+اگر Build و مراحل Deploy همه موفق‌اند ولی وضعیت منبع همیشه "در حال بررسی" می‌ماند:
+این یعنی برنامه بالا آمده ولی Health Check زیرساخت به پاسخ ۲۰۰ نمی‌رسد (نه کرش برنامه).
+در تنظیمات StackDome، اگر گزینه‌ی Health Check Path وجود دارد، آن را روی یکی از این مسیرها بگذارید (هر سه بدون نیاز به لاگین، همیشه ۲۰۰ برمی‌گردانند):
+  /health
+  /healthz
+  /api/health
+مسیر "/" را برای Health Check انتخاب نکنید، چون بدون لاگین با کد ۳۰۲ به /login ریدایرکت می‌کند و بعضی سیستم‌ها ۳۰۲ را سالم نمی‌شمارند.
+
+اگر در لاگ StackDome دقیقاً این را دیدید: «پورت ۸۰۸۰ اتصالات را نمی‌پذیرد»
+یعنی StackDome پیش‌فرض ۸۰۸۰ را چک می‌کند، در حالی که برنامه (در نسخه‌های قبلی این پکیج) روی ۵۰۰۰ گوش می‌داد.
+این نسخه دیگر پیش‌فرض ۸۰۸۰ است (هم در Dockerfile هم در entrypoint.sh)، پس فقط کافی‌ست Public/Web port در StackDome را هم روی ۸۰۸۰ بگذارید تا با هم یکی باشند.
+
+WireGuard واقعی برای ساخت wg0 همچنان نیازمند NET_ADMIN و پشتیبانی شبکه WireGuard از طرف زیرساخت است.

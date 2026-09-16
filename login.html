@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ورود - پنل WireGuard</title>
+<style>
+  body{font-family:Tahoma,Arial,sans-serif;background:#0b1220;color:#e5e7eb;margin:0;display:flex;min-height:100vh;align-items:center;justify-content:center}
+  .card{background:#111827;border:1px solid #253047;border-radius:14px;padding:24px;width:100%;max-width:360px}
+  h2{margin-top:0}
+  label{display:block;margin:10px 0 4px;font-size:13px;color:#9ca3af}
+  input{width:100%;box-sizing:border-box;padding:10px;background:#0b1220;color:#fff;border:1px solid #334155;border-radius:8px}
+  button{width:100%;margin-top:16px;border:0;border-radius:8px;padding:10px;background:#2563eb;color:#fff;font-weight:bold;cursor:pointer}
+  .flash{background:#3f2a0b;color:#fde68a;padding:10px;border-radius:8px;margin-bottom:12px;font-size:13px}
+</style>
+</head>
+<body>
+<div class="card">
+  <h2>ورود ادمین</h2>
+  {% with messages = get_flashed_messages() %}
+    {% if messages %}{% for m in messages %}<div class="flash">{{ m }}</div>{% endfor %}{% endif %}
+  {% endwith %}
+  <form method="POST">
+    <label>نام کاربری</label>
+    <input name="username" required autofocus>
+    <label>رمز عبور</label>
+    <input type="password" name="password" required>
+    <button type="submit">ورود</button>
+  </form>
+</div>
+</body>
+</html>
